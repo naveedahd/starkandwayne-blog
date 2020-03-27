@@ -1,0 +1,172 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: blog-prod-ghost
+  name: blog-prod-ghost
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: blog-prod-ghost
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: blog-prod-ghost
+    spec:
+      containers:
+      - name: blog-prod-ghost
+        env:
+        - name: database__client
+          value: "mysql"
+        - name: database__connection__host
+          value: "ghost-sql-prod-mysql"
+        - name: database__connection__port
+          value: "3306"
+        - name: database__connection__password
+          valueFrom:
+            secretKeyRef:
+              key: mysql-root-password
+              name: ghost-sql-prod-mysql
+        - name: database__connection__user
+          value: "root"
+        - name: database__connection__database
+          value: "ghost"
+        - name: url
+          value: "https://www.k8s.lke.starkandwayne.com/blog"
+        - name: server__port
+          value: "2368"
+        - name: server__host
+          value: "0.0.0.0"
+        - name: storage__active
+          value: "s3"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: access_key_id
+              name: ghost-aws-creds
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secret_key
+              name: ghost-aws-creds
+        - name: AWS_DEFAULT_REGION
+          valueFrom:
+            secretKeyRef:
+              key: region
+              name: ghost-aws-creds
+        - name: GHOST_STORAGE_ADAPTER_S3_PATH_BUCKET
+          valueFrom:
+            secretKeyRef:
+              key: bucket-name
+              name: ghost-aws-creds
+        image: docker.io/ghost:3.7.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 6
+          httpGet:
+            httpHeaders:
+            - name: Host
+              value: www.k8s.lke.starkandwayne.com/blog
+            - name: X-Forwarded-Proto
+              value: https
+            path: /blog
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        ports:
+        - containerPort: 2368
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 6
+          httpGet:
+            httpHeaders:
+            - name: Host
+              value: www.k8s.lke.starkandwayne.com/blog
+            - name: X-Forwarded-Proto
+              value: https
+            path: /blog
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: 300m
+            memory: 512Mi
+        volumeMounts:
+        - mountPath: /var/lib/ghost/content
+          name: ghost-data
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - git clone -c http.sslVerify=false https://github.com/starkandwayne/ghost-for-cloudfoundry.git
+          /tmp/ghost-repo && mkdir -p /var/lib/ghost/content/ && cp -R /tmp/ghost-repo/content/*
+          /var/lib/ghost/content/ && npm install ghost-storage-adapter-s3 && 
+          cp -r ./node_modules/ /var/lib/ghost/content/adapters/storage/s3/node_modules
+        image: node:13.8.0
+        imagePullPolicy: IfNotPresent
+        name: get-ghost-theme
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/lib/ghost/content
+          name: ghost-data
+      restartPolicy: Always
+      volumes:
+      - emptyDir: {}
+        name: ghost-data
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  labels:
+    app: blog-prod-ghost
+  name: blog-prod-ghost
+spec:
+  rules:
+  - host: www.k8s.lke.starkandwayne.com
+    http:
+      paths:
+      - backend:
+          serviceName: blog-prod-ghost
+          servicePort: http
+        path: /blog
+  tls:
+  - hosts:
+    - www.k8s.lke.starkandwayne.com
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: blog-prod-ghost
+  name: blog-prod-ghost
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: blog-prod-ghost
+  type: ClusterIP
+ 
