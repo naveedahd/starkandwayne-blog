@@ -31,7 +31,8 @@ jobs:
         KUBECONFIG: ${{ github.workspace }}/.kubeconfig
       with:
         command: |
-          kubectl apply -f $GITHUB_WORKSPACE/deployment/to-deploy.yml
+          cat $GITHUB_WORKSPACE/deployment/to-deploy.yml
+          kubectl apply -n www-staging -f $GITHUB_WORKSPACE/deployment/to-deploy.yml
 
     - name: Smoke Test  
       uses: stefanprodan/kube-tools@v1
@@ -69,7 +70,7 @@ jobs:
         KUBECONFIG: ${{ github.workspace }}/.kubeconfig
       with:
         command: |
-          kubectl apply -f $GITHUB_WORKSPACE/deployment/to-deploy.yml
+          kubectl apply -n www-prod -f $GITHUB_WORKSPACE/deployment/to-deploy.yml
 
     - name: Smoke Test  
       uses: stefanprodan/kube-tools@v1
@@ -77,4 +78,4 @@ jobs:
         KUBECONFIG: ${{ github.workspace }}/.kubeconfig
       with:
         command: |
-          kubectl -n www-prod rollout status deployment/ghost-sql-prod-mysql
+          kubectl -n www-prod rollout status deployment/blog-prod-ghost
