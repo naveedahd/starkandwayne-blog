@@ -1,0 +1,30 @@
+{{!< default}}
+
+{{#author}}
+{{!-- Everything inside the #author tags pulls data from the author --}}
+
+{{#contentFor "header-meta"}}
+  <meta name="description" content="Articles by {{name}}">
+{{/contentFor}}
+
+<div class="hero interior" style="background-image: url(https://starkandwayne.com/images/banners/hero.jpg)">
+  <div class="container">
+      <div class="hero-content">
+        <h1 style="color: white;">Articles by {{name}}</h1>
+      </div>
+  </div>
+</div>
+
+{{/author}}
+
+<div id="blog">
+  {{#foreach posts}}
+    {{> post/list this}}
+  {{/foreach}}
+</div>
+
+{{#if pagination}}
+  <div class="page blog-pagination">
+    {{pagination}}
+  </div>
+{{/if}}
