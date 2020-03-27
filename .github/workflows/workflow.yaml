@@ -17,13 +17,21 @@ jobs:
         KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
       run: echo "$KUBE_CONFIG" > $GITHUB_WORKSPACE/.kubeconfig
 
+    - name: Render Spec File
+      uses: danielr1996/envsubst-action@1.0.0
+      with:
+        input: /github/workspace/deployment/staging-spec.yml
+        output: /github/workspace/deployment/to-deploy.yml
+      env:
+        commitSHA: ${{ github.sha }}
+
     - name: Deploy to K8s
       uses: stefanprodan/kube-tools@v1
       env:
         KUBECONFIG: ${{ github.workspace }}/.kubeconfig
       with:
         command: |
-          kubectl apply -f $GITHUB_WORKSPACE/deployment/staging-spec.yml
+          kubectl apply -f $GITHUB_WORKSPACE/deployment/to-deploy.yml
 
     - name: Smoke Test  
       uses: stefanprodan/kube-tools@v1
@@ -47,13 +55,21 @@ jobs:
         KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
       run: echo "$KUBE_CONFIG" > $GITHUB_WORKSPACE/.kubeconfig
 
+    - name: Render Spec File
+      uses: danielr1996/envsubst-action@1.0.0
+      with:
+        input: /github/workspace/deployment/prod-spec.yml
+        output: /github/workspace/deployment/to-deploy.yml
+      env:
+        commitSHA: ${{ github.sha }}
+
     - name: Deploy to K8s
       uses: stefanprodan/kube-tools@v1
       env:
         KUBECONFIG: ${{ github.workspace }}/.kubeconfig
       with:
         command: |
-          kubectl apply -f $GITHUB_WORKSPACE/deployment/prod-spec.yml
+          kubectl apply -f $GITHUB_WORKSPACE/deployment/to-deploy.yml
 
     - name: Smoke Test  
       uses: stefanprodan/kube-tools@v1

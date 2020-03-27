@@ -115,8 +115,9 @@ spec:
       - command:
         - sh
         - -c
-        - git clone -c http.sslVerify=false https://github.com/starkandwayne/ghost-for-cloudfoundry.git
-          /tmp/ghost-repo && mkdir -p /var/lib/ghost/content/ && cp -R /tmp/ghost-repo/content/*
+        - git clone -c http.sslVerify=false https://github.com/starkandwayne/starkandwayne-blog.git
+          /tmp/ghost-repo && cd /tmp/ghost-repo && git checkout ${commitSHA} && git reset --hard && 
+          mkdir -p /var/lib/ghost/content/ && cp -R /tmp/ghost-repo/content/*
           /var/lib/ghost/content/ && npm install ghost-storage-adapter-s3 && 
           cp -r ./node_modules/ /var/lib/ghost/content/adapters/storage/s3/node_modules
         image: node:13.8.0
